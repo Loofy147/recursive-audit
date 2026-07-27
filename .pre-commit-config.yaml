@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: reas-audit
+        name: REAS Audit Gate
+        entry: python -m reas.cli
+        language: system
+        files: \.json$
+        pass_filenames: true

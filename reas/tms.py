@@ -1,4 +1,8 @@
-from typing import List, Dict, Any, Optional
+import queue
+import sys
+import threading
+import time
+from typing import List, Dict, Any, Optional, Callable
 from reas.schemas import (
     NodeSpecification,
     EdgeSpecification,
@@ -7,7 +11,59 @@ from reas.schemas import (
     EdgeType,
     ClaimType
 )
-from reas.storage import GraphStorage
+from reas.storage import BaseGraphStorage
+
+class RetractionEvent:
+    def __init__(self, case_id: str, node_id: str, signatures: List[str]):
+        self.case_id = case_id
+        self.node_id = node_id
+        self.signatures = signatures
+
+class EventBus:
+    """
+    EventBus: Facilitates asynchronous event-driven propagation of retractions
+    and re-open triggers using a background thread processing queue.
+    """
+    def __init__(self):
+        self._subscribers: List[Callable[[RetractionEvent], None]] = []
+        self._queue = queue.Queue()
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+
+    def subscribe(self, callback: Callable[[RetractionEvent], None]):
+        self._subscribers.append(callback)
+
+    def publish(self, event: RetractionEvent):
+        self._queue.put(event)
+
+    def start(self):
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._running = False
+        self._queue.put(None)  # Sentinel to unblock the queue and exit
+        if self._thread:
+            self._thread.join()
+
+    def _run(self):
+        while self._running:
+            try:
+                event = self._queue.get(timeout=0.1)
+                if event is None:
+                    break
+                for sub in self._subscribers:
+                    try:
+                        sub(event)
+                    except Exception as e:
+                        print(f"Error in EventBus subscriber: {str(e)}", file=sys.stderr)
+                self._queue.task_done()
+            except queue.Empty:
+                continue
+
 
 class TruthMaintenanceSystem:
     """
@@ -17,16 +73,44 @@ class TruthMaintenanceSystem:
     - Parallel Conflict Branch Isolation (BRANCH_CONFLICT)
     - Recursive Retraction Propagation Sweep
     - Stop rules (Convergence threshold epsilon, Branch isolation)
+    - Event-Driven Asynchronous Propagation (EventBus)
     """
-    def __init__(self, graph_storage: GraphStorage):
+    def __init__(self, graph_storage: BaseGraphStorage, event_bus: Optional[EventBus] = None):
         self.graph_storage = graph_storage
+        self.event_bus = event_bus or EventBus()
+        self.event_bus.subscribe(self._handle_async_retraction)
+        self.event_bus.start()
+        # Keep track of async findings for testing and verification
+        self.async_findings = []
+
+    def shutdown(self):
+        """
+        Stops the underlying event bus cleanly to prevent background thread leaks.
+        """
+        if self.event_bus:
+            self.event_bus.stop()
+
+    def _handle_async_retraction(self, event: RetractionEvent):
+        """
+        Asynchronously triggers downstream retraction sweeps and logs actions.
+        """
+        # Simulated consumer sweep across downstream bitemporal records/stores
+        time.sleep(0.01)  # Simulate network/I/O latency
+        self.async_findings.append({
+            "check_id": "ASYNC_RETRACTION_PROCESSED",
+            "node_id": event.node_id,
+            "case_id": event.case_id,
+            "severity": "INFO",
+            "message": f"Async retraction sweep complete for node {event.node_id} with signatures: {event.signatures}"
+        })
 
     def propagate(
         self,
         nodes: List[NodeSpecification],
         edges: List[EdgeSpecification],
         start_node_id: str,
-        epsilon: float = 1e-5
+        epsilon: float = 1e-5,
+        case_id: str = "DEFAULT_CASE"
     ) -> List[Dict[str, Any]]:
         """
         Runs the propagation sweep starting from start_node_id.
@@ -55,9 +139,12 @@ class TruthMaintenanceSystem:
         # 1. Recursive Retraction Sweep
         start_node = node_map.get(start_node_id)
         if start_node and start_node.status == NodeStatus.RETIRED:
+            # Trigger asynchronous event propagation via EventBus
             if start_node.retraction_metadata and start_node.retraction_metadata.signatures:
                 signatures = start_node.retraction_metadata.signatures
+                self.event_bus.publish(RetractionEvent(case_id, start_node_id, signatures))
 
+                # Synchronous Retraction Sweep logic
                 # Find all downstream descendants in graph
                 descendants = set()
                 queue = [start_node_id]

@@ -1,0 +1,32 @@
+name: REAS Audit Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  reas-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic networkx numpy
+
+      - name: Run REAS Audit on All Cases
+        run: |
+          # Find all JSON specs and run the REAS CLI
+          for spec in $(find . -name "*.json" -not -path "*/node_modules/*"); do
+            echo "Auditing spec: $spec"
+            python -m reas.cli "$spec"
+          done
