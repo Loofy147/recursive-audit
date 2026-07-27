@@ -490,3 +490,68 @@ S'ouvre dans une nouvelle fenêtre
 S'ouvre dans une nouvelle fenêtre
 S'ouvre dans une nouvelle fenêtre
 C
+
+## Enterprise Production Architecture: Scale, Observability, and Automation
+
+To transition the Recursive Evidence-Audit System from its foundational, synchronous local design to an enterprise-grade platform capable of processing billions of claims across distributed systems, the architecture specifies the following structural extensions.
+
+### 1. Abstracted Graph Storage Layer (`BaseGraphStorage`)
+In high-scale systems, the epistemic graph size $G = (V,E)$ routinely scales beyond $10^5$ nodes. A local, single-threaded, in-memory graph (such as a local NetworkX graph) is insufficient for concurrent read-write workloads. The specification abstracts all graph topology operations behind `BaseGraphStorage`, establishing formal design bounds for:
+- **`NetworkXGraphStorage`:** A fast, single-process, local in-memory implementation optimized for local development and rapid, single-case test environments.
+- **`DistributedGraphStorage` (Neo4j / Memgraph):** A thread-safe, synchronized, distributed implementation utilizing high-concurrency locking and connection pooling. Nodes are represented as labeled graph entities and edges are materialized as directed relational paths.
+
+```
+       [ Client Queries & REAS Audit Engine ]
+                        │
+                        ▼
+            ┌───────────────────────┐
+            │   BaseGraphStorage    │  (Abstract Interface)
+            └───────────┬───────────┘
+                        │
+         ┌──────────────┴──────────────┐
+         ▼                             ▼
+┌──────────────────┐         ┌─────────────────────┐
+│  NetworkX Storage │         │ Distributed Storage │  (Neo4j / Memgraph)
+└──────────────────┘         └─────────────────────┘
+```
+
+### 2. Asynchronous Event-Driven Truth Maintenance System (TMS)
+To prevent network or computational blockages during recursive retraction propagation sweeps, the TMS decouples state updates and canonical signature sweeps into an asynchronous event stream.
+
+When an upstream claim's state transitions to `RETIRED`, the synchronous execution thread registers the transition in the bi-temporal database and publishes a `RetractionEvent` to the `EventBus`:
+
+$$\text{RetractionEvent} = \langle \text{CaseID}, \text{NodeID}, \{\text{Signatures}\} \rangle$$
+
+A background execution daemon or thread pool subscribes to the `EventBus` and asynchronously initiates the downstream retraction sweep. This ensures that:
+- Core client audit requests are executed with $O(1)$ or minimal blockages.
+- Signature grep-sweeps, database transaction closures, and downstream terminal conclusion updates are processed concurrently in the background.
+
+```
+                  Synchronous Step                       Asynchronous Step
+                 ──────────────────                     ───────────────────
+┌──────────────┐                  ┌──────────┐  Event  ┌──────────┐         ┌─────────────────┐
+│ Claim State  │ ──► Update SQL ──► EventBus ├────────►│  Worker  │ ──────► │ Sweep Downstream│
+│  = RETIRED   │                  └──────────┘         └──────────┘         │   Signatures    │
+└──────────────┘                                                            └─────────────────┘
+```
+
+### 3. Agentic Extraction & Automated RFC 6902 Auto-Remediation
+- **Structured LLM Parser Integration:** For ungrounded domain text and publication sources, the pipeline integrates with structured LLM json schema modes (such as Instructor or OpenAI's JSON mode) to extract unstructured information directly into a typed `TraceRecord` schema containing claims, evidence bindings, directed edges, and implicit unstated enthymemes.
+- **Automated Self-Remediation Patching:** The system provides an automated remediation path for non-blocking `SOFT` findings. Instead of human-in-the-loop manual intervention, the verifier engine automatically converts `SOFT` diagnostic outputs into standardized JSON Patches conforming to **RFC 6902**. These patch sequences can be applied directly to the JSON case specification via `--apply-patches` to instantly resolve missing default bindings or append retraction awareness notes.
+
+```
+┌───────────────────┐    Audit Pipeline     ┌────────────────┐    JSON Patch     ┌─────────────────┐
+│ Claim Case Spec   │ ────────────────────► │ SOFT Findings  │ ────────────────► │ Self-Remediated │
+│  (JSON Spec File) │                       └──────┬─────────┘    (RFC 6902)     │   JSON Spec     │
+└───────────────────┘                              │                             └─────────────────┘
+                                                   ▼
+                                            [ Auto-Patches ]
+```
+
+### 4. Continuous Observability & Multi-Tier Metrics Telemetry
+The enterprise architecture integrates `AuditTelemetry` directly across all four query routing tiers to record real-time operational diagnostics:
+- **Query Latency Distributions ($L_{Tier}$):** Collects and logs latency percentiles across Tier 1 (State Check), Tier 2 (Structured SQL), Tier 3 (Episodic Vector Fallback), and Tier 4 (Multi-hop Graph Traversal).
+- **Cache Hit Rate ($\mathcal{H}$):** Tracks State Check hit and miss ratios to determine cache performance and scaling limits.
+- **Gate Failure Distributions ($F_{Gate}$):** Tracks the counts of `HARD` (blocking) and `SOFT` (non-blocking) failures to identify compliance drift in real-time.
+
+All metrics are exposed as a JSON telemetry log and formatted as standard **Prometheus exposition format** metrics to facilitate direct ingestion by Grafana, Prometheus, or OpenTelemetry endpoints.
