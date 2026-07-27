@@ -1,6 +1,8 @@
+import time
 from typing import List, Dict, Any, Optional
 from reas.schemas import NodeSpecification, ClaimType, NodeStatus
 from reas.storage import StateBiTemporalStore, VectorStore, GraphStorage
+from reas.telemetry import AuditTelemetry
 
 class QueryRouter:
     """
@@ -24,6 +26,7 @@ class QueryRouter:
         self.graph_storage = graph_storage
         self.theta_low = theta_low
         self.theta_vec = theta_vec
+        self.telemetry = AuditTelemetry()
 
     def route_query(
         self,
@@ -35,6 +38,7 @@ class QueryRouter:
         """
         Routes the query to the appropriate tier according to REAS policy.
         """
+        start_time = time.perf_counter()
         lower_query = query_text.lower()
 
         # --- Tier 1 (State Check) ---
@@ -54,6 +58,9 @@ class QueryRouter:
                     ) / 5.0
 
                 if avg_confidence > self.theta_low or force_tier == 1:
+                    self.telemetry.record_state_check(hit=True)
+                    duration = time.perf_counter() - start_time
+                    self.telemetry.record_query_latency(1, duration)
                     return {
                         "tier": 1,
                         "route": "Tier 1: State Check",
@@ -61,6 +68,10 @@ class QueryRouter:
                         "state": node_state.model_dump(),
                         "confidence": avg_confidence
                     }
+                else:
+                    self.telemetry.record_state_check(hit=False)
+            else:
+                self.telemetry.record_state_check(hit=False)
 
         # --- Tier 2 (Structured Query) ---
         is_structured_signal = any(word in lower_query for word in ["how many", "count", "average", "mean", "sum", "total", "ratio", "percentage", "aggregate"])
@@ -82,6 +93,8 @@ class QueryRouter:
                 rows = cursor.fetchall()
                 data = {"nodes": [{"node_id": r["node_id"], "status": r["status"], "claim_type": r["claim_type"]} for r in rows]}
 
+            duration = time.perf_counter() - start_time
+            self.telemetry.record_query_latency(2, duration)
             return {
                 "tier": 2,
                 "route": "Tier 2: Structured Query",
@@ -96,6 +109,8 @@ class QueryRouter:
         is_episodic_signal = any(word in lower_query for word in ["context", "conflict", "history", "episodic", "conflated", "conversation"])
 
         if force_tier == 3 or (force_tier is None and (is_episodic_signal or top_similarity >= self.theta_vec)):
+            duration = time.perf_counter() - start_time
+            self.telemetry.record_query_latency(3, duration)
             return {
                 "tier": 3,
                 "route": "Tier 3: Episodic Fallback",
@@ -145,6 +160,8 @@ class QueryRouter:
                 "cycles": self.graph_storage.detect_cycles()
             }
 
+        duration = time.perf_counter() - start_time
+        self.telemetry.record_query_latency(4, duration)
         return {
             "tier": 4,
             "route": "Tier 4: Graph Traversal",

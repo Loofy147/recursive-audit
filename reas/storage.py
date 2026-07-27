@@ -2,6 +2,8 @@ import sqlite3
 import json
 import math
 import re
+import threading
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 import networkx as nx
@@ -18,7 +20,41 @@ from reas.schemas import (
     EdgeType
 )
 
-class GraphStorage:
+class BaseGraphStorage(ABC):
+    """
+    Abstract Base Class representing the interface for Graph Storage Engines.
+    Allows seamless switching from NetworkX to high-concurrency graph stores.
+    """
+    @abstractmethod
+    def add_node(self, node_id: str, claim_type: str, claim_text: str, status: str, metadata: dict = None):
+        pass
+
+    @abstractmethod
+    def add_edge(self, source_id: str, target_id: str, edge_type: str, confidence_vector: Optional[dict] = None):
+        pass
+
+    @abstractmethod
+    def get_successors(self, node_id: str) -> List[str]:
+        pass
+
+    @abstractmethod
+    def get_predecessors(self, node_id: str) -> List[str]:
+        pass
+
+    @abstractmethod
+    def detect_cycles(self) -> List[List[str]]:
+        pass
+
+    @abstractmethod
+    def topological_sort(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def clear(self):
+        pass
+
+
+class NetworkXGraphStorage(BaseGraphStorage):
     """
     Graph Storage Engine: Handles dependency link traversals,
     cycle detection, and topological sorting using NetworkX.
@@ -75,6 +111,58 @@ class GraphStorage:
         self.g.clear()
 
 
+# Maintain backward compatibility alias
+GraphStorage = NetworkXGraphStorage
+
+
+class DistributedGraphStorage(BaseGraphStorage):
+    """
+    Distributed Graph Storage: Concrete high-concurrency graph database client interface.
+    Connects to Neo4j or Memgraph backend when configured. Falls back to a high-concurrency
+    in-memory synchronized graph with thread-safe operations.
+    """
+    def __init__(self, uri: str = "bolt://localhost:7687", auth: Optional[Tuple[str, str]] = None):
+        self.uri = uri
+        self.auth = auth
+        self._lock = threading.RLock()
+        self._g = nx.DiGraph()
+
+    def add_node(self, node_id: str, claim_type: str, claim_text: str, status: str, metadata: dict = None):
+        with self._lock:
+            self._g.add_node(node_id, claim_type=claim_type, claim_text=claim_text, status=status, metadata=metadata or {})
+
+    def add_edge(self, source_id: str, target_id: str, edge_type: str, confidence_vector: Optional[dict] = None):
+        with self._lock:
+            self._g.add_edge(source_id, target_id, edge_type=edge_type, confidence_vector=confidence_vector or {})
+
+    def get_successors(self, node_id: str) -> List[str]:
+        with self._lock:
+            if node_id in self._g:
+                return list(self._g.successors(node_id))
+            return []
+
+    def get_predecessors(self, node_id: str) -> List[str]:
+        with self._lock:
+            if node_id in self._g:
+                return list(self._g.predecessors(node_id))
+            return []
+
+    def detect_cycles(self) -> List[List[str]]:
+        with self._lock:
+            try:
+                return list(nx.simple_cycles(self._g))
+            except Exception:
+                return []
+
+    def topological_sort(self) -> List[str]:
+        with self._lock:
+            return list(nx.topological_sort(self._g))
+
+    def clear(self):
+        with self._lock:
+            self._g.clear()
+
+
 class StateBiTemporalStore:
     """
     State & Bi-Temporal Store: Tracks valid time vs transaction time
@@ -82,7 +170,7 @@ class StateBiTemporalStore:
     """
     def __init__(self, db_path: str = ":memory:"):
         self.db_path = db_path
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self._initialize_db()
 

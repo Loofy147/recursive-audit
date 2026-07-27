@@ -29,6 +29,10 @@ class TestREAS(unittest.TestCase):
         self.db_path = ":memory:"
         self.engine = REASAuditEngine(db_path=self.db_path)
 
+    def tearDown(self):
+        if hasattr(self, "engine") and self.engine and hasattr(self.engine, "tms"):
+            self.engine.tms.shutdown()
+
     def test_schema_parsing_and_bitemporal(self):
         # Create a valid node specification
         node = NodeSpecification(
@@ -286,6 +290,101 @@ class TestREAS(unittest.TestCase):
 
         self.assertEqual(res["tier"], 4)
         self.assertIn("T4-2", res["neighbors"]["successors"])
+
+
+    def test_asynchronous_event_driven_propagation(self):
+        # Setup event-driven retraction test
+        nodes = [
+            NodeSpecification(
+                node_id="N_ret",
+                claim_type=ClaimType.FACTUAL,
+                claim_text="Theorem signature_abc",
+                status=NodeStatus.RETIRED,
+                retraction_metadata={"retired_by": "Drift", "reason": "RG Limit", "signatures": ["signature_abc"]}
+            ),
+            NodeSpecification(
+                node_id="N_un",
+                claim_type=ClaimType.FACTUAL,
+                claim_text="Uses signature_abc to prove system"
+            )
+        ]
+        edges = [
+            EdgeSpecification(source_id="N_ret", target_id="N_un", edge_type=EdgeType.SUPPORT)
+        ]
+
+        # Propagate retraction and wait slightly for async handler
+        findings = self.engine.tms.propagate(nodes, edges, "N_ret", case_id="CASE-ASYNC-TEST")
+        import time
+        time.sleep(0.05)  # Wait for async queue to process
+
+        # Check that async findings recorded processing
+        async_processed = [f for f in self.engine.tms.async_findings if f["check_id"] == "ASYNC_RETRACTION_PROCESSED"]
+        self.assertEqual(len(async_processed), 1)
+        self.assertEqual(async_processed[0]["node_id"], "N_ret")
+        self.assertEqual(async_processed[0]["case_id"], "CASE-ASYNC-TEST")
+
+
+    def test_structured_llm_parser_and_auto_patches(self):
+        from reas.parser import StructuredLLMParser, generate_patches_for_dossier
+        from reas.schemas import CaseSpecification, NodeSpecification, ClaimType
+        text = "Claim C-1: Weinberg angle is correct\nEvidence E-1: Weinberg script, script: tests/check_weinberg.py\nE-1 SUPPORT C-1"
+        parser = StructuredLLMParser()
+        record = parser.parse_text(text, "MOCK_CASE")
+
+        self.assertEqual(len(record.extracted_claims), 1)
+        self.assertEqual(len(record.extracted_evidence), 1)
+        self.assertEqual(len(record.extracted_edges), 1)
+
+        case_spec = CaseSpecification(
+            case_id="MOCK_CASE_PATCH",
+            nodes=[NodeSpecification(node_id="E-1", claim_type=ClaimType.EVIDENCE, claim_text="No binding")],
+            edges=[]
+        )
+        dossier = {"findings": [{"check_id": "EVI_NO_BINDING", "node_id": "E-1", "severity": "SOFT"}]}
+        patches = generate_patches_for_dossier(case_spec, dossier)
+        self.assertEqual(len(patches), 1)
+        self.assertEqual(patches[0]["op"], "add")
+
+
+    def test_telemetry_and_visualization_export(self):
+        from reas.telemetry import AuditTelemetry, export_visualization
+        from reas.schemas import CaseSpecification, NodeSpecification, ClaimType
+        import tempfile
+        import os
+
+        # Test telemetry singleton
+        telemetry = AuditTelemetry()
+        telemetry.record_query_latency(1, 0.002)
+        telemetry.record_state_check(hit=True)
+        telemetry.record_gate_outcome(hard_count=0, soft_count=1, info_count=1)
+
+        summary = telemetry.get_metrics_summary()
+        self.assertIn("query_latency_averages", summary)
+        self.assertIn("cache_state_check", summary)
+
+        # Test prometheus format
+        prom = telemetry.export_prometheus_format()
+        self.assertIn("reas_cache_hits_total", prom)
+
+        # Test visualization file creation
+        case_spec = CaseSpecification(
+            case_id="MOCK_VIZ",
+            nodes=[NodeSpecification(node_id="N1", claim_type=ClaimType.FACTUAL, claim_text="test text")],
+            edges=[]
+        )
+        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            export_visualization(case_spec, {}, tmp_path)
+            self.assertTrue(os.path.exists(tmp_path))
+            with open(tmp_path, "r", encoding="utf-8") as f:
+                html = f.read()
+            self.assertIn("MOCK_VIZ", html)
+            self.assertIn("test text", html)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 
 if __name__ == "__main__":
     unittest.main()

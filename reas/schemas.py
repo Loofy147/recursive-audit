@@ -88,3 +88,11 @@ class CaseSpecification(BaseModel):
     scope_envelope: Optional[ScopeEnvelope] = None
     nodes: List[NodeSpecification]
     edges: List[EdgeSpecification]
+
+
+class TraceRecord(BaseModel):
+    case_id: str
+    extracted_claims: List[NodeSpecification] = Field(default_factory=list)
+    extracted_evidence: List[NodeSpecification] = Field(default_factory=list)
+    extracted_edges: List[EdgeSpecification] = Field(default_factory=list)
+    implicit_enthymemes: List[NodeSpecification] = Field(default_factory=list)
