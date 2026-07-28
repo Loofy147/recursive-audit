@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>REAS Claim Graph Explorer: Case REAS-SELF-AUDIT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header {
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #343a40;
+        }
+        #cy {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background-color: #f1f3f5;
+        }
+        .details-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>REAS Claim Graph Explorer — Case: REAS-SELF-AUDIT</h1>
+        </header>
+
+        <div class="legend">
+            <strong>Node Status:</strong>
+            <div class="legend-item"><div class="color-box" style="background-color: #2ECC40;"></div> Active</div>
+            <div class="legend-item"><div class="color-box" style="background-color: #FFDC00;"></div> Reopened</div>
+            <div class="legend-item"><div class="color-box" style="background-color: #AAAAAA;"></div> Retired</div>
+            <div class="legend-item"><div class="color-box" style="background-color: #FF851B;"></div> Conflated</div>
+            <strong style="margin-left: 20px;">Edge Type:</strong>
+            <div class="legend-item"><span style="color: #FF4136;">-- dashed --</span> Branch Conflict</div>
+            <div class="legend-item"><span style="color: #FF851B;">&mdash;&mdash;</span> Defeat/Attack</div>
+        </div>
+
+        <div id="cy"></div>
+
+        <div class="details-panel" id="details">
+            <h3>Node Inspector</h3>
+            <p>Click any node or edge to inspect its full properties, scope boundaries, and confidence vectors.</p>
+        </div>
+    </div>
+
+    <script>
+        var cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: [
+  {
+    "data": {
+      "id": "E-TESTS",
+      "label": "E-TESTS\n(evidence)",
+      "status": "ACTIVE",
+      "type": "evidence",
+      "text": "Recursive Evidence-Audit System unit and integration tests executing successfully.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "C-REPRESENTATION",
+      "label": "C-REPRESENTATION\n(factual)",
+      "status": "ACTIVE",
+      "type": "factual",
+      "text": "Representation Audit validates the structural syntax, schema compliance, and claim typing of the claim graph.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "C-EVIDENCE",
+      "label": "C-EVIDENCE\n(factual)",
+      "status": "ACTIVE",
+      "type": "factual",
+      "text": "Evidence Audit verifies direct empirical artifacts bound to specific claims via subprocess execution and signature grep sweeps.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "C-DEPENDENCY",
+      "label": "C-DEPENDENCY\n(factual)",
+      "status": "ACTIVE",
+      "type": "factual",
+      "text": "Dependency Audit validates logical syntax and inferential integrity, detecting circular dependency loops and resolving active defeaters.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "C-MODEL",
+      "label": "C-MODEL\n(causal)",
+      "status": "ACTIVE",
+      "type": "causal",
+      "text": "Model Audit verifies structural, causal, and statistical constraints, ensuring causal rung height requirements are satisfied.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.66<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "C-TMS",
+      "label": "C-TMS\n(factual)",
+      "status": "ACTIVE",
+      "type": "factual",
+      "text": "Truth Maintenance System handles recursive retraction propagation, nonmonotonic belief revision, and branch conflict isolation.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "C-OUTCOME",
+      "label": "C-OUTCOME\n(factual)",
+      "status": "ACTIVE",
+      "type": "factual",
+      "text": "Outcome Audit evaluates severity gates across all pipeline findings to produce an itemized dossier and system exit status.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "K-SYSTEM",
+      "label": "K-SYSTEM\n(conclusion)",
+      "status": "SETTLED",
+      "type": "conclusion",
+      "text": "The entire REAS verification pipeline and its core architectural pillars are structurally valid, verified, and integrated.",
+      "confidence": "Source Credibility: 1.0<br/>Empirical Grounding: 1.0<br/>Logical Soundness: 1.0<br/>Causal Strength: 0.0<br/>Temporal Stability: 1.0",
+      "color": "#2ECC40"
+    }
+  },
+  {
+    "data": {
+      "id": "E-TESTS-C-REPRESENTATION",
+      "source": "E-TESTS",
+      "target": "C-REPRESENTATION",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "E-TESTS-C-EVIDENCE",
+      "source": "E-TESTS",
+      "target": "C-EVIDENCE",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "E-TESTS-C-DEPENDENCY",
+      "source": "E-TESTS",
+      "target": "C-DEPENDENCY",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "E-TESTS-C-MODEL",
+      "source": "E-TESTS",
+      "target": "C-MODEL",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "E-TESTS-C-TMS",
+      "source": "E-TESTS",
+      "target": "C-TMS",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "E-TESTS-C-OUTCOME",
+      "source": "E-TESTS",
+      "target": "C-OUTCOME",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "C-REPRESENTATION-K-SYSTEM",
+      "source": "C-REPRESENTATION",
+      "target": "K-SYSTEM",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "C-EVIDENCE-K-SYSTEM",
+      "source": "C-EVIDENCE",
+      "target": "K-SYSTEM",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "C-DEPENDENCY-K-SYSTEM",
+      "source": "C-DEPENDENCY",
+      "target": "K-SYSTEM",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "C-MODEL-K-SYSTEM",
+      "source": "C-MODEL",
+      "target": "K-SYSTEM",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "C-TMS-K-SYSTEM",
+      "source": "C-TMS",
+      "target": "K-SYSTEM",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  },
+  {
+    "data": {
+      "id": "C-OUTCOME-K-SYSTEM",
+      "source": "C-OUTCOME",
+      "target": "K-SYSTEM",
+      "type": "SUPPORT",
+      "style": "solid",
+      "color": "#ccc"
+    }
+  }
+],
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'label': 'data(id)',
+                        'background-color': 'data(color)',
+                        'color': '#212529',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'font-size': '12px',
+                        'font-weight': 'bold',
+                        'width': '60px',
+                        'height': '60px',
+                        'border-width': '2px',
+                        'border-color': '#495057'
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 3,
+                        'line-style': 'data(style)',
+                        'line-color': 'data(color)',
+                        'target-arrow-color': 'data(color)',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                        'label': 'data(type)',
+                        'font-size': '10px',
+                        'color': '#495057',
+                        'text-background-opacity': 0.7,
+                        'text-background-color': '#ffffff',
+                        'text-background-padding': '2px',
+                        'text-background-shape': 'roundrectangle'
+                    }
+                }
+            ],
+            layout: {
+                name: 'cose',
+                directed: true,
+                padding: 30,
+                idealEdgeLength: 100,
+                nodeRepulsion: 400000
+            }
+        });
+
+        cy.on('tap', 'node', function(evt){
+            var node = evt.target;
+            var data = node.data();
+            var detailsHtml = '<h3>Node: ' + data.id + ' (' + data.type + ')</h3>' +
+                               '<p><strong>Status:</strong> ' + data.status + '</p>' +
+                               '<p><strong>Proposition:</strong> ' + data.text + '</p>' +
+                               '<p><strong>Confidence Vector:</strong><br/>' + data.confidence + '</p>';
+            document.getElementById('details').innerHTML = detailsHtml;
+        });
+
+        cy.on('tap', 'edge', function(evt){
+            var edge = evt.target;
+            var data = edge.data();
+            var detailsHtml = '<h3>Edge: ' + data.source + ' &rarr; ' + data.target + '</h3>' +
+                               '<p><strong>Type:</strong> ' + data.type + '</p>';
+            document.getElementById('details').innerHTML = detailsHtml;
+        });
+    </script>
+</body>
+</html>
