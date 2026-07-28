@@ -1,0 +1,187 @@
+{
+  "case_id": "REAS-SELF-AUDIT",
+  "schema_version": "1.0.0",
+  "scope_envelope": {
+    "temporal": {
+      "valid_start": "2026-07-27"
+    },
+    "spatial": "REAS Codebase",
+    "institutional": "Software Verification Gate",
+    "parametric": {
+      "components": 6
+    },
+    "value_frame": "Self-Referential Verification"
+  },
+  "nodes": [
+    {
+      "node_id": "E-TESTS",
+      "claim_type": "evidence",
+      "claim_text": "Recursive Evidence-Audit System unit and integration tests executing successfully.",
+      "status": "ACTIVE",
+      "execution_binding": {
+        "script_path": "tests/test_reas.py",
+        "expected_exit_code": 0
+      },
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "C-REPRESENTATION",
+      "claim_type": "factual",
+      "claim_text": "Representation Audit validates the structural syntax, schema compliance, and claim typing of the claim graph.",
+      "status": "ACTIVE",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "C-EVIDENCE",
+      "claim_type": "factual",
+      "claim_text": "Evidence Audit verifies direct empirical artifacts bound to specific claims via subprocess execution and signature grep sweeps.",
+      "status": "ACTIVE",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "C-DEPENDENCY",
+      "claim_type": "factual",
+      "claim_text": "Dependency Audit validates logical syntax and inferential integrity, detecting circular dependency loops and resolving active defeaters.",
+      "status": "ACTIVE",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "C-MODEL",
+      "claim_type": "causal",
+      "claim_text": "Model Audit verifies structural, causal, and statistical constraints, ensuring causal rung height requirements are satisfied.",
+      "status": "ACTIVE",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.66,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "C-TMS",
+      "claim_type": "factual",
+      "claim_text": "Truth Maintenance System handles recursive retraction propagation, nonmonotonic belief revision, and branch conflict isolation.",
+      "status": "ACTIVE",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "C-OUTCOME",
+      "claim_type": "factual",
+      "claim_text": "Outcome Audit evaluates severity gates across all pipeline findings to produce an itemized dossier and system exit status.",
+      "status": "ACTIVE",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    },
+    {
+      "node_id": "K-SYSTEM",
+      "claim_type": "conclusion",
+      "claim_text": "The entire REAS verification pipeline and its core architectural pillars are structurally valid, verified, and integrated.",
+      "status": "SETTLED",
+      "confidence_vector": {
+        "source_credibility": 1.0,
+        "empirical_grounding": 1.0,
+        "logical_soundness": 1.0,
+        "causal_strength": 0.0,
+        "temporal_stability": 1.0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source_id": "E-TESTS",
+      "target_id": "C-REPRESENTATION",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "E-TESTS",
+      "target_id": "C-EVIDENCE",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "E-TESTS",
+      "target_id": "C-DEPENDENCY",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "E-TESTS",
+      "target_id": "C-MODEL",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "E-TESTS",
+      "target_id": "C-TMS",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "E-TESTS",
+      "target_id": "C-OUTCOME",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "C-REPRESENTATION",
+      "target_id": "K-SYSTEM",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "C-EVIDENCE",
+      "target_id": "K-SYSTEM",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "C-DEPENDENCY",
+      "target_id": "K-SYSTEM",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "C-MODEL",
+      "target_id": "K-SYSTEM",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "C-TMS",
+      "target_id": "K-SYSTEM",
+      "edge_type": "SUPPORT"
+    },
+    {
+      "source_id": "C-OUTCOME",
+      "target_id": "K-SYSTEM",
+      "edge_type": "SUPPORT"
+    }
+  ]
+}
